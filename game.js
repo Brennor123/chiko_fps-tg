@@ -7,21 +7,14 @@ if (window.Telegram && window.Telegram.WebApp) {
 const canvas  = document.getElementById("game")
 const ctx     = canvas.getContext("2d")
 
-// Вертикальный формат
-const MOBILE_CONTROLS_H = 180
-const HUD_H             = 64
-
-// Рендерим в половину ширины для производительности
-const RENDER_SCALE = 0.5
+const MOBILE_CONTROLS_H = 160
+const HUD_H             = 80
 
 function resizeCanvas() {
   canvas.width  = window.innerWidth
   canvas.height = window.innerHeight - MOBILE_CONTROLS_H - HUD_H
-  // Растягиваем через CSS — canvas рендерится маленьким, браузер масштабирует
-  canvas.style.width  = window.innerWidth + "px"
-  canvas.style.height = (window.innerHeight - MOBILE_CONTROLS_H - HUD_H) + "px"
-  canvas.width  = Math.floor(window.innerWidth  * RENDER_SCALE)
-  canvas.height = Math.floor((window.innerHeight - MOBILE_CONTROLS_H - HUD_H) * RENDER_SCALE)
+  canvas.style.width  = ""
+  canvas.style.height = ""
 }
 resizeCanvas()
 window.addEventListener("resize", resizeCanvas)
@@ -362,7 +355,7 @@ if (btnNewGame) btnNewGame.addEventListener("click", startGame)
 
 // ─── Мобильное управление ────────────────────────────────────────────────────
 
-let joystick = { active: false, id: null, startX: 0, startY: 0, dx: 0, dy: 0 }
+let joystick = { active: false, id: null, startX: 0, startY: 0, dx: 0, dy: 0, lookDx: 0 }
 let lookTouch = { active: false, id: null, lastX: 0 }
 
 function initMobileControls() {
@@ -422,14 +415,13 @@ function initMobileControls() {
   )
 
   // Правый джойстик — поворот камеры
-  let lastRightDx = 0
+  let rightActive = false
   makeJoystick(rightZone, rightKnob, rightBase,
     (dx, dy) => {
-      // Поворачиваем пропорционально отклонению джойстика
-      player.angle += (dx - lastRightDx) * 0.08
-      lastRightDx   = dx
+      rightActive   = true
+      joystick.lookDx = dx   // сохраняем отклонение
     },
-    () => { lastRightDx = 0 }
+    () => { rightActive = false; joystick.lookDx = 0 }
   )
 
   // Кнопка огня
@@ -517,6 +509,8 @@ function drawWorld() {
   const texW1    = currentLevel === 2 ? tex.wall1_l2   : tex.wall1
   const texW2    = currentLevel === 2 ? tex.wall2_l2   : tex.wall2
 
+  ctx.imageSmoothingEnabled = false
+
   if (texCeil.complete && texCeil.naturalWidth > 0)
     ctx.drawImage(texCeil, 0, 0, canvas.width, canvas.height / 2)
   else {
@@ -533,29 +527,29 @@ function drawWorld() {
 
   zBuffer = new Array(canvas.width)
 
-  // Рисуем полосами по 2px — вдвое меньше лучей, заметный прирост скорости
-  const STRIP = 2
+  // Полосы по 3px — хороший баланс качества и скорости
+  const STRIP = 3
   for (let x = 0; x < canvas.width; x += STRIP) {
     const angle = player.angle - FOV / 2 + FOV * x / canvas.width
     const r     = ray(angle)
     const dist  = r.dist * Math.cos(normalizeAngle(angle - player.angle))
 
-    // Заполняем zBuffer для всех пикселей полосы
-    for (let i = 0; i < STRIP; i++) zBuffer[x + i] = dist
+    for (let i = 0; i < STRIP && x+i < canvas.width; i++) zBuffer[x + i] = dist
 
     const h    = canvas.height / dist
     const tex_ = r.side === 0 ? texW1 : texW2
+    const top  = Math.floor(canvas.height / 2 - h / 2)
 
     if (tex_.complete && tex_.naturalWidth > 0) {
       const tx = Math.floor(r.wallX * tex_.naturalWidth)
       ctx.drawImage(tex_, tx, 0, 1, tex_.naturalHeight,
-        x, Math.floor(canvas.height / 2 - h / 2), STRIP, Math.ceil(h))
+        x, top, STRIP, Math.ceil(h))
     } else {
       const shade = Math.min(255, Math.floor(180 / dist))
       ctx.fillStyle = r.side === 0
         ? `rgb(${shade},${Math.floor(shade*0.7)},${Math.floor(shade*0.5)})`
         : `rgb(${Math.floor(shade*0.7)},${Math.floor(shade*0.5)},${Math.floor(shade*0.35)})`
-      ctx.fillRect(x, Math.floor(canvas.height / 2 - h / 2), STRIP, Math.ceil(h))
+      ctx.fillRect(x, top, STRIP, Math.ceil(h))
     }
   }
 }
@@ -632,7 +626,10 @@ function move() {
     }
   })
 
-  // Вход в портал
+  // Правый джойстик — поворот камеры (каждый кадр)
+  if (joystick.lookDx) {
+    player.angle += joystick.lookDx * 0.05
+  }
   if (portal) {
     const dx = player.x - portal.x
     const dy = player.y - portal.y

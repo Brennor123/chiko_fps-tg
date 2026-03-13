@@ -206,39 +206,30 @@ body {
   inset: 0;
 }
 
-#game {
-  position: absolute;
-  top: 0; left: 0;
-  display: block;
-  image-rendering: pixelated;
-}
-
 #minimap {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 100px;
-  height: 100px;
+  width: 90px;
+  height: 90px;
   border: 2px solid var(--doom-border);
   box-shadow: 0 0 12px rgba(200,72,0,0.4), inset 0 0 8px rgba(0,0,0,0.8);
   image-rendering: pixelated;
   z-index: 10;
 }
 
-/* ── HUD — компактный для вертикального экрана ───────────────── */
+/* ── HUD внизу экрана ────────────────────────────────────────── */
 
 #hud {
-  position: absolute;
+  position: fixed;
   left: 0; right: 0;
-  height: 64px;
+  bottom: 0;
+  height: 80px;
   background: var(--doom-panel);
   border-top: 3px solid var(--doom-border);
-  border-bottom: 3px solid var(--doom-border);
-  box-shadow: 0 -4px 24px rgba(200,72,0,0.25);
   display: flex;
   align-items: stretch;
   z-index: 20;
-  bottom: 180px;
 }
 
 .hud-section {
@@ -255,7 +246,7 @@ body {
 .hud-section:last-child { border-right: none; }
 
 .hud-label {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--doom-tan);
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -263,7 +254,7 @@ body {
 }
 
 .hud-value {
-  font-size: 26px;
+  font-size: 30px;
   line-height: 1;
   font-weight: bold;
   text-shadow: 0 0 10px currentColor;
@@ -283,7 +274,7 @@ body {
 }
 
 #face-frame {
-  width: 56px; height: 56px;
+  width: 60px; height: 60px;
   border: 2px solid var(--doom-border);
   background: #100800;
   overflow: hidden;
@@ -334,24 +325,24 @@ body {
 #damage-flash.active { background: rgba(200,0,0,0.35); }
 
 /* ═══════════════════════════════════════════════════════════════
-   МОБИЛЬНОЕ УПРАВЛЕНИЕ
+   МОБИЛЬНОЕ УПРАВЛЕНИЕ — над HUD
 ═══════════════════════════════════════════════════════════════ */
 
 #mobile-controls {
-  position: absolute;
-  bottom: 0;
+  position: fixed;
+  bottom: 80px;
   left: 0; right: 0;
-  height: 180px;
-  background: rgba(8,4,0,0.85);
+  height: 160px;
+  background: rgba(6,3,0,0.8);
   border-top: 2px solid var(--doom-border);
+  border-bottom: 2px solid var(--doom-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 16px;
   z-index: 30;
-  padding: 0 20px;
 }
 
-/* Зоны джойстиков */
 #joy-left-zone,
 #joy-right-zone {
   width: 44%;
@@ -360,60 +351,56 @@ body {
   align-items: center;
   justify-content: center;
   pointer-events: all;
-  z-index: 31;
   position: relative;
 }
 
-/* Базы джойстиков */
 .joy-base {
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
-  background: rgba(200,72,0,0.12);
-  border: 2px solid rgba(200,72,0,0.4);
+  background: rgba(200,72,0,0.1);
+  border: 2px solid rgba(200,72,0,0.35);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Ручки джойстиков */
 .joy-knob {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, rgba(255,120,40,0.9), rgba(180,60,0,0.8));
+  background: radial-gradient(circle at 35% 35%, rgba(255,120,40,0.9), rgba(180,60,0,0.85));
   border: 2px solid #c84800;
-  box-shadow: 0 0 10px rgba(200,72,0,0.5);
+  box-shadow: 0 0 12px rgba(200,72,0,0.5);
   position: absolute;
   pointer-events: none;
 }
 
-/* Кнопка огня — по центру, над правым джойстиком */
+/* Кнопка огня — над правым джойстиком, по центру зоны */
 #fire-btn {
   position: absolute;
-  right: calc(22% - 20px);
-  bottom: 120px;
-  width: 56px;
-  height: 56px;
+  right: calc(22% + 4px);
+  bottom: calc(80px + 130px);
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: rgba(160,0,0,0.85);
+  background: rgba(160,0,0,0.9);
   border: 2px solid #c00;
-  box-shadow: 0 0 14px rgba(200,0,0,0.5);
+  box-shadow: 0 0 12px rgba(200,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 20px;
   pointer-events: all;
   user-select: none;
   -webkit-user-select: none;
   z-index: 32;
-  cursor: pointer;
 }
 
 #fire-btn:active {
-  transform: scale(0.9);
-  background: rgba(220,0,0,0.95);
+  transform: scale(0.88);
+  background: rgba(220,0,0,1);
 }
 
 /* ═══════════════════════════════════════════════════════════════
