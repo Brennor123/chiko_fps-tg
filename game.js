@@ -7,13 +7,21 @@ if (window.Telegram && window.Telegram.WebApp) {
 const canvas  = document.getElementById("game")
 const ctx     = canvas.getContext("2d")
 
-// Вертикальный формат — игровая область без HUD и управления
+// Вертикальный формат
 const MOBILE_CONTROLS_H = 220
 const HUD_H             = 72
+
+// Рендерим в половину ширины для производительности
+const RENDER_SCALE = 0.5
 
 function resizeCanvas() {
   canvas.width  = window.innerWidth
   canvas.height = window.innerHeight - MOBILE_CONTROLS_H - HUD_H
+  // Растягиваем через CSS — canvas рендерится маленьким, браузер масштабирует
+  canvas.style.width  = window.innerWidth + "px"
+  canvas.style.height = (window.innerHeight - MOBILE_CONTROLS_H - HUD_H) + "px"
+  canvas.width  = Math.floor(window.innerWidth  * RENDER_SCALE)
+  canvas.height = Math.floor((window.innerHeight - MOBILE_CONTROLS_H - HUD_H) * RENDER_SCALE)
 }
 resizeCanvas()
 window.addEventListener("resize", resizeCanvas)
@@ -505,7 +513,6 @@ function ray(angle) {
 let zBuffer = []
 
 function drawWorld() {
-  // Выбираем текстуры потолка/пола/стен в зависимости от уровня
   const texCeil  = currentLevel === 2 ? tex.ceiling_l2 : tex.ceiling
   const texFloor = currentLevel === 2 ? tex.floor_l2   : tex.floor
   const texW1    = currentLevel === 2 ? tex.wall1_l2   : tex.wall1
@@ -527,11 +534,15 @@ function drawWorld() {
 
   zBuffer = new Array(canvas.width)
 
-  for (let x = 0; x < canvas.width; x++) {
+  // Рисуем полосами по 2px — вдвое меньше лучей, заметный прирост скорости
+  const STRIP = 2
+  for (let x = 0; x < canvas.width; x += STRIP) {
     const angle = player.angle - FOV / 2 + FOV * x / canvas.width
     const r     = ray(angle)
     const dist  = r.dist * Math.cos(normalizeAngle(angle - player.angle))
-    zBuffer[x]  = dist
+
+    // Заполняем zBuffer для всех пикселей полосы
+    for (let i = 0; i < STRIP; i++) zBuffer[x + i] = dist
 
     const h    = canvas.height / dist
     const tex_ = r.side === 0 ? texW1 : texW2
@@ -539,13 +550,13 @@ function drawWorld() {
     if (tex_.complete && tex_.naturalWidth > 0) {
       const tx = Math.floor(r.wallX * tex_.naturalWidth)
       ctx.drawImage(tex_, tx, 0, 1, tex_.naturalHeight,
-        x, Math.floor(canvas.height / 2 - h / 2), 1, Math.ceil(h))
+        x, Math.floor(canvas.height / 2 - h / 2), STRIP, Math.ceil(h))
     } else {
       const shade = Math.min(255, Math.floor(180 / dist))
       ctx.fillStyle = r.side === 0
         ? `rgb(${shade},${Math.floor(shade*0.7)},${Math.floor(shade*0.5)})`
         : `rgb(${Math.floor(shade*0.7)},${Math.floor(shade*0.5)},${Math.floor(shade*0.35)})`
-      ctx.fillRect(x, Math.floor(canvas.height / 2 - h / 2), 1, Math.ceil(h))
+      ctx.fillRect(x, Math.floor(canvas.height / 2 - h / 2), STRIP, Math.ceil(h))
     }
   }
 }
@@ -1326,7 +1337,16 @@ function drawVictory() {
 
 // ─── Цикл ────────────────────────────────────────────────────────────────────
 
-function loop() {
+const TARGET_FPS  = 30
+const FRAME_TIME  = 1000 / TARGET_FPS
+let   lastFrameAt = 0
+
+function loop(now) {
+  requestAnimationFrame(loop)
+
+  if (now - lastFrameAt < FRAME_TIME) return
+  lastFrameAt = now
+
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   move()
@@ -1349,8 +1369,6 @@ function loop() {
     if (player._victory) drawVictory()
     else drawDead()
   }
-
-  requestAnimationFrame(loop)
 }
 
-loop()
+requestAnimationFrame(loop)
