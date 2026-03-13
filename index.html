@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TOYSBERRY BOOM</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── ГЛАВНОЕ МЕНЮ ─────────────────────────────────────────── -->
+  <div id="main-menu">
+    <div id="menu-bg"></div>
+
+    <div id="menu-content">
+      <div id="menu-title">
+        <span class="title-toys">TOYS</span><span class="title-berry">BERRY</span>
+        <div class="title-boom">BOOM</div>
+      </div>
+
+      <nav id="menu-nav">
+        <button class="menu-btn" id="btn-newgame" autofocus>
+          <span class="btn-skull">💀</span> НОВАЯ ИГРА
+        </button>
+      </nav>
+
+      <div id="menu-footer">EPISODE 1: APPLE FURY</div>
+    </div>
+  </div>
+
+  <!-- ── ИГРА ─────────────────────────────────────────────────── -->
+  <div id="game-wrapper" class="hidden">
+    <canvas id="game"></canvas>
+    <canvas id="minimap"></canvas>
+    <div id="crosshair"></div>
+    <div id="damage-flash"></div>
+
+    <!-- ── МОБИЛЬНОЕ УПРАВЛЕНИЕ ──────────────────────────────── -->
+    <div id="mobile-controls">
+      <!-- Джойстик движения (левая сторона) -->
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-knob"></div>
+        </div>
+      </div>
+      <!-- Зона поворота камеры (правая сторона, над кнопкой огня) -->
+      <div id="look-zone"></div>
+      <!-- Кнопка огня -->
+      <div id="fire-btn">🔥</div>
+    </div>
+
+    <div id="hud">
+      <div class="hud-section" id="section-hp">
+        <div class="hud-label">HP</div>
+        <div class="hud-value"><span id="hp">100</span>%</div>
+      </div>
+      <div class="hud-section" id="section-ammo">
+        <div class="hud-label">AMMO</div>
+        <div class="hud-value"><span id="ammo">30</span></div>
+      </div>
+      <div id="section-face">
+        <div id="face-frame">
+          <img src="assets/ui/chico_face.png" id="face" alt="hero">
+        </div>
+      </div>
+      <div class="hud-section" id="section-enemies">
+        <div class="hud-label">ENEMIES</div>
+        <div class="hud-value"><span id="enemyCount">50</span></div>
+      </div>
+      <div class="hud-section" id="section-score">
+        <div class="hud-label">KILLS</div>
+        <div class="hud-value" id="kills" style="color:#c84800">0</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
