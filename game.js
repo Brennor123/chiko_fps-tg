@@ -8,8 +8,8 @@ const canvas  = document.getElementById("game")
 const ctx     = canvas.getContext("2d")
 
 // Вертикальный формат
-const MOBILE_CONTROLS_H = 220
-const HUD_H             = 72
+const MOBILE_CONTROLS_H = 180
+const HUD_H             = 64
 
 // Рендерим в половину ширины для производительности
 const RENDER_SCALE = 0.5
@@ -366,74 +366,73 @@ let joystick = { active: false, id: null, startX: 0, startY: 0, dx: 0, dy: 0 }
 let lookTouch = { active: false, id: null, lastX: 0 }
 
 function initMobileControls() {
-  const joystickZone = document.getElementById("joystick-zone")
-  const lookZone     = document.getElementById("look-zone")
-  const fireBtn      = document.getElementById("fire-btn")
-  const knob         = document.getElementById("joystick-knob")
-  const base         = document.getElementById("joystick-base")
+  const fireBtn   = document.getElementById("fire-btn")
+  const leftZone  = document.getElementById("joy-left-zone")
+  const rightZone = document.getElementById("joy-right-zone")
+  const leftKnob  = document.getElementById("joy-left-knob")
+  const rightKnob = document.getElementById("joy-right-knob")
+  const leftBase  = document.getElementById("joy-left-base")
+  const rightBase = document.getElementById("joy-right-base")
 
-  const MAX_DIST = 40
+  const MAX_DIST = 38
 
-  // ── Джойстик движения ──────────────────────────────────────
-  joystickZone.addEventListener("touchstart", e => {
-    e.preventDefault()
-    const t = e.changedTouches[0]
-    joystick.active = true
-    joystick.id     = t.identifier
-    const rect      = base.getBoundingClientRect()
-    joystick.startX = rect.left + rect.width / 2
-    joystick.startY = rect.top  + rect.height / 2
-  }, { passive: false })
+  function makeJoystick(zone, knob, base, onMove, onEnd) {
+    let id = null, startX = 0, startY = 0
 
-  joystickZone.addEventListener("touchmove", e => {
-    e.preventDefault()
-    for (const t of e.changedTouches) {
-      if (t.identifier !== joystick.id) continue
-      let dx = t.clientX - joystick.startX
-      let dy = t.clientY - joystick.startY
-      const dist = Math.sqrt(dx*dx + dy*dy)
-      if (dist > MAX_DIST) { dx = dx/dist*MAX_DIST; dy = dy/dist*MAX_DIST }
-      joystick.dx = dx / MAX_DIST
-      joystick.dy = dy / MAX_DIST
-      knob.style.transform = `translate(${dx}px, ${dy}px)`
+    zone.addEventListener("touchstart", e => {
+      e.preventDefault()
+      if (id !== null) return
+      const t    = e.changedTouches[0]
+      id         = t.identifier
+      const rect = base.getBoundingClientRect()
+      startX     = rect.left + rect.width  / 2
+      startY     = rect.top  + rect.height / 2
+    }, { passive: false })
+
+    zone.addEventListener("touchmove", e => {
+      e.preventDefault()
+      for (const t of e.changedTouches) {
+        if (t.identifier !== id) continue
+        let dx   = t.clientX - startX
+        let dy   = t.clientY - startY
+        const d  = Math.sqrt(dx*dx + dy*dy)
+        if (d > MAX_DIST) { dx = dx/d*MAX_DIST; dy = dy/d*MAX_DIST }
+        knob.style.transform = `translate(${dx}px,${dy}px)`
+        onMove(dx / MAX_DIST, dy / MAX_DIST)
+      }
+    }, { passive: false })
+
+    const endFn = e => {
+      e.preventDefault()
+      for (const t of e.changedTouches) {
+        if (t.identifier !== id) continue
+        id = null
+        knob.style.transform = "translate(0,0)"
+        onEnd()
+      }
     }
-  }, { passive: false })
+    zone.addEventListener("touchend",    endFn, { passive: false })
+    zone.addEventListener("touchcancel", endFn, { passive: false })
+  }
 
-  joystickZone.addEventListener("touchend", e => {
-    e.preventDefault()
-    for (const t of e.changedTouches) {
-      if (t.identifier !== joystick.id) continue
-      joystick.active = false
-      joystick.dx = 0; joystick.dy = 0
-      knob.style.transform = "translate(0,0)"
-    }
-  }, { passive: false })
+  // Левый джойстик — движение
+  makeJoystick(leftZone, leftKnob, leftBase,
+    (dx, dy) => { joystick.active = true; joystick.dx = dx; joystick.dy = dy },
+    ()       => { joystick.active = false; joystick.dx = 0; joystick.dy = 0 }
+  )
 
-  // ── Зона поворота камеры ────────────────────────────────────
-  lookZone.addEventListener("touchstart", e => {
-    e.preventDefault()
-    const t = e.changedTouches[0]
-    lookTouch.active = true
-    lookTouch.id     = t.identifier
-    lookTouch.lastX  = t.clientX
-  }, { passive: false })
+  // Правый джойстик — поворот камеры
+  let lastRightDx = 0
+  makeJoystick(rightZone, rightKnob, rightBase,
+    (dx, dy) => {
+      // Поворачиваем пропорционально отклонению джойстика
+      player.angle += (dx - lastRightDx) * 0.08
+      lastRightDx   = dx
+    },
+    () => { lastRightDx = 0 }
+  )
 
-  lookZone.addEventListener("touchmove", e => {
-    e.preventDefault()
-    for (const t of e.changedTouches) {
-      if (t.identifier !== lookTouch.id) continue
-      const delta     = t.clientX - lookTouch.lastX
-      player.angle   += delta * 0.005
-      lookTouch.lastX = t.clientX
-    }
-  }, { passive: false })
-
-  lookZone.addEventListener("touchend", e => {
-    e.preventDefault()
-    lookTouch.active = false
-  }, { passive: false })
-
-  // ── Кнопка огня ────────────────────────────────────────────
+  // Кнопка огня
   fireBtn.addEventListener("touchstart", e => {
     e.preventDefault()
     shoot()
@@ -1064,7 +1063,6 @@ let recoilVel  = 0   // скорость отдачи
 function drawGun() {
   if (!tex.gun.complete || tex.gun.naturalWidth === 0) return
 
-  // ── Боббинг при ходьбе ──────────────────────────────────────────────────
   const moving = Math.sqrt(velX * velX + velY * velY)
   if (moving > 0.003) {
     bobAmount += (1 - bobAmount) * 0.12
@@ -1072,41 +1070,35 @@ function drawGun() {
   } else {
     bobAmount *= 0.88
   }
-  const offsetY = Math.sin(bobPhase)       * bobAmount * 28
-  const offsetX = Math.sin(bobPhase * 0.5) * bobAmount * 10
+  const offsetY = Math.sin(bobPhase)       * bobAmount * 14
+  const offsetX = Math.sin(bobPhase * 0.5) * bobAmount * 5
 
-  // ── Отдача при выстреле ─────────────────────────────────────────────────
-  // Плавное затухание отдачи: пружина возвращает в исходное положение
-  recoilVel += (0 - recoil) * 0.3    // пружина тянет к нулю
-  recoilVel *= 0.65                  // демпфирование
+  recoilVel += (0 - recoil) * 0.3
+  recoilVel *= 0.65
   recoil    += recoilVel
 
-  // Отдача двигает пушку вниз и увеличивает масштаб
-  const recoilY     = recoil * 90
+  const recoilY     = recoil * 45
   const recoilScale = 1 + recoil * 0.12
 
-  // ── Вспышка дула ────────────────────────────────────────────────────────
   if (recoil > 0.3) {
-    const flashSize = recoil * 120
+    const flashSize = recoil * 60
     const flashX    = canvas.width / 2
-    const flashY    = canvas.height - 380 + offsetY + recoilY - flashSize * 0.3
-
+    const flashY    = canvas.height - 160 + offsetY + recoilY - flashSize * 0.3
     const grad = ctx.createRadialGradient(flashX, flashY, 0, flashX, flashY, flashSize)
     grad.addColorStop(0,   "rgba(255,230,100,0.95)")
     grad.addColorStop(0.3, "rgba(255,120,20,0.7)")
     grad.addColorStop(1,   "rgba(255,60,0,0)")
-
     ctx.fillStyle = grad
     ctx.beginPath()
     ctx.arc(flashX, flashY, flashSize, 0, Math.PI * 2)
     ctx.fill()
   }
 
-  // ── Рисуем пушку ────────────────────────────────────────────────────────
-  const w  = 600 * recoilScale
-  const h  = 380 * recoilScale
+  // Уменьшенное оружие — вписывается в нижнюю треть экрана
+  const w  = Math.floor(canvas.width * 1.1 * recoilScale)
+  const h  = Math.floor(w * (380 / 600))
   const x  = canvas.width  / 2 - w / 2 + offsetX
-  const y  = canvas.height - 380 + offsetY + recoilY
+  const y  = canvas.height - h + offsetY + recoilY + 10
 
   ctx.drawImage(tex.gun, x, y, w, h)
 }
